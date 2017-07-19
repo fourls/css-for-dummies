@@ -100,7 +100,7 @@ function parseCSSSelector(selector) {
 
             // if the key and value were actually found
             if(keyName != undefined && valName != undefined) {
-                secArray.push({'type':'HTML attribute','content':'"' + keyName + '" that equals "' + valName + '"'})
+                secArray.push({'type':'with the HTML attribute','content':'"' + keyName + '" that equals "' + valName + '"'})
             }
 
             secParts = sectionRegex.exec(section);
@@ -236,6 +236,8 @@ prompt.get([
         .replace(/&quot;(.*?)&quot;/g,'<span class="quotes">$&</span>')
         // envelop occurences of the word 'inside' with a span
         .replace(/(?!&quot;)inside(?!&quot;)/g,'<span class="inside">$&</span>')
+        // envelop hexadecimal numbers with a span
+        .replace(/#[A-Fa-f0-9]{6}/g, '<span class="color" style="color: $&">$&</span>')
     ;
 
     var outputFile = fs.writeFileSync(result['output'],htmlTemplate.replace(/@\.@/g,output));

@@ -48,7 +48,7 @@
 	"clear": {"readable":"sides where floating elements are not allowed","concatenation":"are"},
 	"clip": {"readable":"cropping"},
 	"display": {"readable":"way this element is displayed"},
-	"float": {"readable":"floats","beginning":"This element","concatenation":""},
+	"float": {"readable":"floats","beginning":"it","concatenation":""},
 	"height": {"readable":"height"},
 	"left": {"readable":"distance from the left of the page"},
 	"margin": {"readable":"margin"},
