@@ -100,7 +100,7 @@ function parseCSSSelector(selector) {
 
             // if the key and value were actually found
             if(keyName != undefined && valName != undefined) {
-                secArray.push({'type':'with the HTML attribute','content':'"' + keyName + '" that equals "' + valName + '"'})
+                secArray.push({'type':'with the HTML attribute','content':'&quot;' + keyName + '&quot; that equals &quot;' + valName + '&quot;'})
             }
 
             secParts = sectionRegex.exec(section);
@@ -114,7 +114,7 @@ function parseCSSSelector(selector) {
                 retString += ' + ';
             } else {
                 // this is the start of the string
-                retString = 'in an element ';
+                retString = ' an element ';
             }
             retString += part['type'] + ' ' + part['content'];
         });
@@ -132,6 +132,8 @@ function parseCSSSelector(selector) {
     sections.forEach(function(section) {
         if(retVal != '') {
             retVal += ' inside ';
+        } else {
+            retVal = ' in ';
         }
         retVal += section;
     });
@@ -143,7 +145,22 @@ function parseCSSSelector(selector) {
 function parseCSSToArray(css) {
     // Regex: [0]=full, [1]=selector, [2]=content
     // This regex doesn't get used for its groups though
-    var elementStrings = css.match(/(.*?)\s*{((?:.*?\n?)*?)}/gm);
+    var sentenceStrings = css.match(/(.*?)\s*{((?:.*?\n?)*?)}/gm);
+    var elementStrings = [];
+
+    for (var i = 0; i < sentenceStrings.length; i++) {
+        var selectorRegex = /\s*(.*?)\s*{/gm;
+        var selector = selectorRegex.exec(sentenceStrings[i])[1];
+        var sentences = selector.split(',');
+
+        var propStrRegex = /{([^]*)}/gm;
+        var propertiesString = propStrRegex.exec(sentenceStrings[i])[1];
+        
+        sentences.forEach(function(sent) {
+            elementStrings.push(sent + ' {' + propertiesString + '}');
+        });
+    }
+
     var elements = [];
     for(var i = 0; i < elementStrings.length; i++) {
         var element = elementStrings[i];
@@ -232,7 +249,7 @@ prompt.get([
 
     output = output
         // envelop quotes with a span
-        .replace(/&quot;(.*?)&quot;/g,'<span class="quotes">$&</span>')
+        .replace(/&quot;(.*?)&quot;/g,'<span class="quotes">$1</span>')
         // envelop occurences of the word 'inside' with a span
         .replace(/(?!&quot;)inside(?!&quot;)/g,'<span class="inside">$&</span>')
         // envelop hexadecimal numbers with a span
