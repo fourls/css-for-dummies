@@ -1,5 +1,6 @@
 const fs = require('fs');
 const prompt = require('prompt');
+const ntc = require('./ntc');
 const cssProperties = require('./properties.json');
 const htmlTemplate = fs.readFileSync('outputtemplate.html').toString();
 
@@ -76,13 +77,13 @@ function parseCSSSelector(selector) {
             }
             switch(typeRes[0]) {
                 case '#':
-                    type = 'uniquely identified';
+                    type = 'with the ID';
                     break;
                 case '.':
                     type = 'classed';
                     break;
                 case ':':
-                    type = 'when its';
+                    type = 'when it is';
                     break;
                 case 'element':
                     type = 'named';
@@ -253,7 +254,15 @@ prompt.get([
         // envelop occurences of the word 'inside' with a span
         .replace(/(?!&quot;)inside(?!&quot;)/g,'<span class="inside">$&</span>')
         // envelop hexadecimal numbers with a span
-        .replace(/#[A-Fa-f0-9]{6}/g, '<span class="color" style="color: $&">$&</span>')
+        .replace(/#[A-Fa-f0-9]{6}/g, function(value) {
+            var color = ntc.name(value);
+            var displayColor = color[1];
+            if(/Invalid Color/.test(color[1])) {
+                displayColor = value;
+            }
+
+            return `<span class="color" style="color: ${value}">${displayColor}</span>`;
+        })//'<span class="color" style="color: $&">$&</span>')
     ;
 
     var outputFile = fs.writeFileSync(result['output'],htmlTemplate.replace(/@\.@/g,output));
