@@ -262,7 +262,7 @@ prompt.get([
             }
 
             return `<span class="color" style="color: ${value}">${displayColor}</span>`;
-        })//'<span class="color" style="color: $&">$&</span>')
+        }).replace(/url\("?([^)\n]*?)"?\)/g, '<a href="">$1</a>')
     ;
 
     var outputFile = fs.writeFileSync(result['output'],htmlTemplate.replace(/@\.@/g,output));
