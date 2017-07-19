@@ -1,6 +1,7 @@
 const fs = require('fs');
 const prompt = require('prompt');
 const cssProperties = require('./properties.json');
+const htmlTemplate = fs.readFileSync('outputtemplate.html').toString();
 
 // A class that just serves to be an easy interface to the JSON properties
 class CSSProperty {
@@ -81,7 +82,7 @@ function parseCSSSelector(selector) {
                     type = 'class';
                     break;
                 case 'element':
-                    type = 'element name';
+                    type = 'name';
                     break;
             }
             
@@ -187,25 +188,42 @@ function parseCSSToArray(css) {
 }
 
 // Beginning of file
-prompt.get({
-    name: 'filename',
-    message: 'Which CSS file would you like to dumb down?',
-    // Regex: [0]=full, [1]=filepath, [2]=filename
-    // This regex isn't used for its groups though
-    validator: /((?:.*?\/)*)(.*?\.css)/ig,
-    warning: 'Please input a valid path to a CSS file (.css).',
-    default: 'test.css'
-}, function(err, result) {
+prompt.get([
+    {
+        name: 'input',
+        message: 'Which CSS file would you like to dumb down?',
+        // Regex: [0]=full, [1]=filepath, [2]=filename
+        // This regex isn't used for its groups though
+        validator: /((?:.*?\/)*)(.*?\.css)/ig,
+        warning: 'Please input a valid path to a CSS file (.css).',
+        default: 'test.css'
+    },
+    {
+        name: 'output',
+        message: 'Where do you want the result?',
+        warning: 'Please input a valid directory.',
+        default: 'output.html'
+    }
+], function(err, result) {
     // Read the result of the prompt to a string
-    var file = fs.readFileSync(result['filename']).toString();
+    var inputFile = fs.readFileSync(result['input']).toString();
     // Parse the CSS - this var is an array of arrays containing human readable selectors and properties
-    var css = parseCSSToArray(file);
+    var css = parseCSSToArray(inputFile);
+    var output = '';
 
     css.forEach(function(element) {
-        console.log(element['selector'] + ':');
+        /*console.log(element['selector'] + ':');
         element['properties'].forEach(function (property) {
             // Logs the property
             console.log('   ' + property.getFullString());
+        });*/
+
+        output += `<h1>${element['selector']}</h1><ul>`;
+        element['properties'].forEach(function (property) {
+            output += `<li>${property.getFullString()}</li>`;
         });
+        output += `</ul>`;
     });
+
+    var outputFile = fs.writeFileSync(result['output'],htmlTemplate.replace(/@\.@/g,output));
 })
