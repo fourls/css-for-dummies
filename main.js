@@ -145,17 +145,16 @@ function parseCSSToArray(css) {
     // This regex doesn't get used for its groups though
     var elementStrings = css.match(/(.*?)\s*{((?:.*?\n?)*?)}/gm);
     var elements = [];
-    elementStrings.forEach(function(element) {
-
+    for(var i = 0; i < elementStrings.length; i++) {
+        var element = elementStrings[i];
         // Regex: [0]=full, [1]=selector
         var selectorRegex = /\s*(.*?)\s*{/gm;
         var selector = selectorRegex.exec(element)[1];
         // makes the selector human readable
         selector = parseCSSSelector(selector);
-
         // if parseCSSSelector() returned false - discard this element
         if(selector == false) {
-            return;
+            continue;
         }
 
         // Regex: [0]=full, [1]=properties as a string
@@ -184,7 +183,7 @@ function parseCSSToArray(css) {
             selector: selector,
             properties: propertiesArray
         });
-    }, this);
+    }
 
     // returns array of arrays of [human readable selector, array of properties]
     return elements;
