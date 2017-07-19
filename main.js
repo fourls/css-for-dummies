@@ -17,8 +17,8 @@ class CSSProperty {
         }
 
         this.readable = rdbl;
-        // Defaults to 'The'
-        this.beginning = bgng !== undefined ? bgng : 'The';
+        // Defaults to 'the'
+        this.beginning = bgng !== undefined ? bgng : 'the';
         // Defaults to 'is'
         this.concatenation = cnct !== undefined ? cnct : 'is';
 
@@ -163,8 +163,15 @@ function parseCSSToArray(css) {
         var propertiesArray = [];
         var property = propArrRegex.exec(propertiesString);
         while (property != null) {
-            // pushes an array of [key,value] to the propertiesArray
-            propertiesArray.push([property[1],property[2]]);
+            // Sets propValues to [0]=key, [1]=value
+            var propValues = [property[1],property[2]]
+            // If the property can't be found, remove vendor prefixes and try again
+            var propRef = cssProperties[propValues[0]] !== undefined ? cssProperties[propValues[0]] : cssProperties[removeVendorPrefixes(propValues[0])];
+
+            // Creates a new CSSProperty
+            var thisProp = new CSSProperty(propRef,propValues);
+            propertiesArray.push(thisProp);
+
             property = propArrRegex.exec(propertiesString);
         }
 
@@ -179,6 +186,7 @@ function parseCSSToArray(css) {
     return elements;
 }
 
+// Beginning of file
 prompt.get({
     name: 'filename',
     message: 'Which CSS file would you like to dumb down?',
@@ -196,13 +204,8 @@ prompt.get({
     css.forEach(function(element) {
         console.log(element['selector'] + ':');
         element['properties'].forEach(function (property) {
-            // If the property can't be found, remove vendor prefixes and try again
-            var propRef = cssProperties[property[0]] !== undefined ? cssProperties[property[0]] : cssProperties[removeVendorPrefixes(property[0])];
-
-            // Creates a new CSSProperty
-            var thisProp = new CSSProperty(propRef,property);
             // Logs the property
-            console.log('   ' + thisProp.getFullString());
+            console.log('   ' + property.getFullString());
         });
     });
 })
