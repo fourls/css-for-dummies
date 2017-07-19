@@ -147,21 +147,27 @@ function parseCSSToArray(css) {
     // Regex: [0]=full, [1]=selector, [2]=content
     // This regex doesn't get used for its groups though
     var sentenceStrings = css.match(/(.*?)\s*{((?:.*?\n?)*?)}/gm);
+    // This array will contain separated valid CSS
     var elementStrings = [];
 
     for (var i = 0; i < sentenceStrings.length; i++) {
+        // Regex: [0]=full, [1]=selector
         var selectorRegex = /\s*(.*?)\s*{/gm;
         var selector = selectorRegex.exec(sentenceStrings[i])[1];
+        // Splits the selector by the comma delimiter
         var sentences = selector.split(',');
 
+        // Regex: [0]=full, [1]=string of properties
         var propStrRegex = /{([^]*)}/gm;
         var propertiesString = propStrRegex.exec(sentenceStrings[i])[1];
         
+        // For every separated 'sentence', add that sentence as a selector with all its properties
         sentences.forEach(function(sent) {
             elementStrings.push(sent + ' {' + propertiesString + '}');
         });
     }
 
+    // This array will contain a list of [selector, propertiesArray]
     var elements = [];
     for(var i = 0; i < elementStrings.length; i++) {
         var element = elementStrings[i];
@@ -255,13 +261,17 @@ prompt.get([
         .replace(/(?!&quot;)inside(?!&quot;)/g,'<span class="inside">$&</span>')
         // envelop hexadecimal numbers with a span
         .replace(/#[A-Fa-f0-9]{6}/g, function(value) {
+            // Get human readable name of color
             var color = ntc.name(value);
+            // [0]=rgb code, [1]=human readable name, [2]=exact match(bool)
             var displayColor = color[1];
+            // An invalid color responds with 'Invalid Color: <input'
             if(/Invalid Color/.test(color[1])) {
                 displayColor = value;
             }
 
             return `<span class="color" style="color: ${value}">${displayColor}</span>`;
+        // envelop URLs with an a
         }).replace(/url\("?([^)\n]*?)"?\)/g, '<a href="">$1</a>')
     ;
 
