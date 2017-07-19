@@ -60,13 +60,13 @@ function parseCSSSelector(selector) {
     // for every component construct a human readable string describing it
     sectionsStrings.forEach(function(section) {
         // Regex: [0]=full, [1]=name(including [.#]), [2]=htmlattrkey, [3]=htmlattrval
-        var sectionRegex = /([#.]?[A-Za-z-0-9]+)(?:\[(.+?)=(.+?)\])?/g;
+        var sectionRegex = /([#.:]?[A-Za-z-0-9]+)(?:\[(.+?)=(.+?)\])?/g;
 
         var secArray = [];
         // read all areas of the component
         var secParts = sectionRegex.exec(section);
         while (secParts != null) {
-            var typeRegex = /([.#])/g;
+            var typeRegex = /([.#:])/g;
             // get the type of selector
             var typeRes = secParts[1].match(typeRegex);
             var type;
@@ -76,18 +76,21 @@ function parseCSSSelector(selector) {
             }
             switch(typeRes[0]) {
                 case '#':
-                    type = 'ID';
+                    type = 'uniquely identified';
                     break;
                 case '.':
-                    type = 'class';
+                    type = 'classed';
+                    break;
+                case ':':
+                    type = 'when its';
                     break;
                 case 'element':
-                    type = 'name';
+                    type = 'named';
                     break;
             }
             
             // creates a string like "selector"
-            var content = '"' + secParts[1].replace(typeRegex,'') + '"';
+            var content = '&quot;' + secParts[1].replace(typeRegex,'') + '&quot;';
 
             // pushes data into array of every area of this component
             secArray.push({'type':type,'content':content});
@@ -108,10 +111,10 @@ function parseCSSSelector(selector) {
 
         secArray.forEach(function(part) {
             if(retString != '') {
-                retString += ' and ';
+                retString += ' + ';
             } else {
                 // this is the start of the string
-                retString = 'an element with ';
+                retString = 'in an element ';
             }
             retString += part['type'] + ' ' + part['content'];
         });
@@ -202,7 +205,7 @@ prompt.get([
         name: 'output',
         message: 'Where do you want the result?',
         warning: 'Please input a valid directory.',
-        default: 'output.html'
+        default: 'test.html'
     }
 ], function(err, result) {
     // Read the result of the prompt to a string
@@ -222,8 +225,18 @@ prompt.get([
         element['properties'].forEach(function (property) {
             output += `<li>${property.getFullString()}</li>`;
         });
+        if(element['properties'].length == 0) {
+            output += `<li>there aren't any special properties</li>`;
+        }
         output += `</ul>`;
     });
+
+    output = output
+        // envelop quotes with a span
+        .replace(/&quot;(.*?)&quot;/g,'<span class="quotes">$&</span>')
+        // envelop occurences of the word 'inside' with a span
+        .replace(/(?!&quot;)inside(?!&quot;)/g,'<span class="inside">$&</span>')
+    ;
 
     var outputFile = fs.writeFileSync(result['output'],htmlTemplate.replace(/@\.@/g,output));
 })
