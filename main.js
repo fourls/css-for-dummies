@@ -15,25 +15,21 @@ function rgb2hex(rgb){
 // A class that just serves to be an easy interface to the JSON properties
 class CSSProperty {
     constructor (ref,prop) {
-        var rdbl, bgng, cnct, ovrd;
+        var rdbl, tmpl;
         if(ref == undefined) {
             // if the property is unknown, just make the readable name the property name
             rdbl = prop[0];
         } else {
             // assign this class's variables based on what it says in the properties
             rdbl = ref['readable'];
-            bgng = ref['beginning'];
-            cnct = ref['concatenation'];
-            ovrd = ref['overrides'];
+            tmpl = ref['template'];
         }
 
         this.readable = rdbl;
-        // Defaults to 'the'
-        this.beginning = bgng !== undefined ? bgng : 'the';
-        // Defaults to 'is'
-        this.concatenation = cnct !== undefined ? cnct : 'is';
-        
-        this.overrides = ovrd !== undefined ? ovrd : {};
+
+        // Takes the form of
+        // "the {property} is {value}"
+        this.template = tmpl !== undefined ? tmpl : 'the {property} is {value}';
 
         // The pure CSS values (key: value;)
         this.key = prop[0];
@@ -41,12 +37,16 @@ class CSSProperty {
     }
 
     getFullString() {
+        /*
         var separator = ' ';
         if(this.concatenation == '') {
             separator = '';
         }
 
-        return this.beginning + ' ' + this.readable + ' ' + this.concatenation + separator + this.value;
+        return this.beginning + ' ' + this.readable + ' ' + this.concatenation + separator + this.value;*/
+
+        var ret = this.template.replace('{property}',this.readable).replace('{value}',this.value);
+        return ret;
     }
 }
 
@@ -226,90 +226,92 @@ function parseCSSToArray(css) {
 }
 
 // Beginning of file
-prompt.get([
-    {
-        name: 'input',
-        message: 'Which CSS file would you like to dumb down?',
-        // Regex: [0]=full, [1]=filepath, [2]=filename
-        // This regex isn't used for its groups though
-        validator: /((?:.*?\/)*)(.*?\.css)/ig,
-        warning: 'Please input a valid path to a CSS file (.css).',
-        default: 'test.css'
-    },
-    {
-        name: 'output',
-        message: 'Where do you want the result?',
-        warning: 'Please input a valid directory.',
-        default: 'test.html'
-    }
-], function(err, result) {
-    // Read the result of the prompt to a string
-    var inputFile = fs.readFileSync(result['input']).toString();
-    // Parse the CSS - this var is an array of arrays containing human readable selectors and properties
-    var css = parseCSSToArray(inputFile);
-    var output = '';
-
-    css.forEach(function(element) {
-        /*console.log(element['selector'] + ':');
-        element['properties'].forEach(function (property) {
-            // Logs the property
-            console.log('   ' + property.getFullString());
-        });*/
-
-        output += `<h1>${element['selector']}</h1><ul>`;
-        element['properties'].forEach(function (property) {
-            output += `<li>${property.getFullString()}</li>`;
-        });
-        if(element['properties'].length == 0) {
-            output += `<li>there aren't any special properties</li>`;
+if(require.main == module) {
+    prompt.get([
+        {
+            name: 'input',
+            message: 'Which CSS file would you like to dumb down?',
+            // Regex: [0]=full, [1]=filepath, [2]=filename
+            // This regex isn't used for its groups though
+            validator: /((?:.*?\/)*)(.*?\.css)/ig,
+            warning: 'Please input a valid path to a CSS file (.css).',
+            default: 'test.css'
+        },
+        {
+            name: 'output',
+            message: 'Where do you want the result?',
+            warning: 'Please input a valid directory.',
+            default: 'test.html'
         }
-        output += `</ul>`;
+    ], function(err, result) {
+        // Read the result of the prompt to a string
+        var inputFile = fs.readFileSync(result['input']).toString();
+        // Parse the CSS - this var is an array of arrays containing human readable selectors and properties
+        var css = parseCSSToArray(inputFile);
+        var output = '';
+
+        css.forEach(function(element) {
+            /*console.log(element['selector'] + ':');
+            element['properties'].forEach(function (property) {
+                // Logs the property
+                console.log('   ' + property.getFullString());
+            });*/
+
+            output += `<h1>${element['selector']}</h1><ul>`;
+            element['properties'].forEach(function (property) {
+                output += `<li>${property.getFullString()}</li>`;
+            });
+            if(element['properties'].length == 0) {
+                output += `<li>there aren't any special properties</li>`;
+            }
+            output += `</ul>`;
+        });
+
+        output = output
+            // envelop quotes with a span
+            .replace(/&quot;(.*?)&quot;/g,'<span class="quotes">$1</span>')
+            // envelop occurences of the word 'inside' with a span
+            .replace(/(?!&quot;)inside(?!&quot;)/g,'<span class="inside">$&</span>')
+            // envelop hexadecimal colors with a span
+            .replace(/#[A-Fa-f0-9]{6}/g, function(value) {
+                // Get human readable name of color
+                var color = ntc.name(value);
+                // [0]=rgb code, [1]=human readable name, [2]=exact match(bool)
+                var displayColor = color[1];
+                // An invalid color responds with 'Invalid Color: <input>'
+                if(/Invalid Color/.test(color[1])) {
+                    displayColor = value;
+                }
+
+                return `<span class="color" style="color: ${value}">${displayColor}</span>`;
+            })
+            // envelop rgba colors with a span
+            .replace(/rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?([\d\.]+)[\s+]?\)/ig, function(value,r,g,b,alpha) {
+                var hex = rgb2hex(value);
+
+                // Get human readable name of color
+                var color = ntc.name(hex);
+                // [0]=rgb code, [1]=human readable name, [2]=exact match(bool)
+                var displayColor = color[1];
+                // An invalid color responds with 'Invalid Color: <input>'
+                if(/Invalid Color/.test(color[1])) {
+                    displayColor = value;
+                }
+
+                var displayAlpha = '';
+
+                if(parseFloat(alpha) != 1) {
+                    displayAlpha = ' with a transparency of ' + (parseFloat(alpha) * 100).toString() + '%';
+                }
+
+                return `<span class="color" style="color: ${value}">${displayColor}${displayAlpha}</span>`;
+            })
+            // envelop URLs with an a
+            .replace(/url\("?([^)\n]*?)"?\)/g, '<a href="">$1</a>')
+            .replace(/rotate\("?([^)\n]*?)"?\)/g, '$1 rotation')
+            .replace(/(\d)px/g,'$1 pixels')
+        ;
+
+        var outputFile = fs.writeFileSync(result['output'],htmlTemplate.replace(/@\.@/g,output));
     });
-
-    output = output
-        // envelop quotes with a span
-        .replace(/&quot;(.*?)&quot;/g,'<span class="quotes">$1</span>')
-        // envelop occurences of the word 'inside' with a span
-        .replace(/(?!&quot;)inside(?!&quot;)/g,'<span class="inside">$&</span>')
-        // envelop hexadecimal colors with a span
-        .replace(/#[A-Fa-f0-9]{6}/g, function(value) {
-            // Get human readable name of color
-            var color = ntc.name(value);
-            // [0]=rgb code, [1]=human readable name, [2]=exact match(bool)
-            var displayColor = color[1];
-            // An invalid color responds with 'Invalid Color: <input>'
-            if(/Invalid Color/.test(color[1])) {
-                displayColor = value;
-            }
-
-            return `<span class="color" style="color: ${value}">${displayColor}</span>`;
-        })
-        // envelop rgba colors with a span
-        .replace(/rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?([\d\.]+)[\s+]?\)/ig, function(value,r,g,b,alpha) {
-            var hex = rgb2hex(value);
-
-            // Get human readable name of color
-            var color = ntc.name(hex);
-            // [0]=rgb code, [1]=human readable name, [2]=exact match(bool)
-            var displayColor = color[1];
-            // An invalid color responds with 'Invalid Color: <input>'
-            if(/Invalid Color/.test(color[1])) {
-                displayColor = value;
-            }
-
-            var displayAlpha = '';
-
-            if(parseFloat(alpha) != 1) {
-                displayAlpha = ' with a transparency of ' + (parseFloat(alpha) * 100).toString() + '%';
-            }
-
-            return `<span class="color" style="color: ${value}">${displayColor}${displayAlpha}</span>`;
-        })
-        // envelop URLs with an a
-        .replace(/url\("?([^)\n]*?)"?\)/g, '<a href="">$1</a>')
-        .replace(/rotate\("?([^)\n]*?)"?\)/g, '$1 rotation')
-        .replace(/(\d)px/g,'$1 pixels')
-    ;
-
-    var outputFile = fs.writeFileSync(result['output'],htmlTemplate.replace(/@\.@/g,output));
-})
+}
