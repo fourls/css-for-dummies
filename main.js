@@ -4,10 +4,18 @@ const ntc = require('./ntc');
 const cssProperties = require('./properties.json');
 const htmlTemplate = fs.readFileSync('outputtemplate.html').toString();
 
+function rgb2hex(rgb){
+ rgb = rgb.match(/^rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i);
+ return (rgb && rgb.length === 4) ? "#" +
+  ("0" + parseInt(rgb[1],10).toString(16)).slice(-2) +
+  ("0" + parseInt(rgb[2],10).toString(16)).slice(-2) +
+  ("0" + parseInt(rgb[3],10).toString(16)).slice(-2) : '';
+}
+
 // A class that just serves to be an easy interface to the JSON properties
 class CSSProperty {
     constructor (ref,prop) {
-        var rdbl, bgng, cnct;
+        var rdbl, bgng, cnct, ovrd;
         if(ref == undefined) {
             // if the property is unknown, just make the readable name the property name
             rdbl = prop[0];
@@ -16,6 +24,7 @@ class CSSProperty {
             rdbl = ref['readable'];
             bgng = ref['beginning'];
             cnct = ref['concatenation'];
+            ovrd = ref['overrides'];
         }
 
         this.readable = rdbl;
@@ -23,6 +32,8 @@ class CSSProperty {
         this.beginning = bgng !== undefined ? bgng : 'the';
         // Defaults to 'is'
         this.concatenation = cnct !== undefined ? cnct : 'is';
+        
+        this.overrides = ovrd !== undefined ? ovrd : {};
 
         // The pure CSS values (key: value;)
         this.key = prop[0];
@@ -41,6 +52,7 @@ class CSSProperty {
 
 // Remove vendor prefixes like -moz-, -o-, -webkit-, -ms-
 function removeVendorPrefixes(property) {
+    // Regex: [0]=full, [1]=prefix, [2]=property
     regex = /^-(\w*?)-([\w-]*)(?=:)/;
     //return [property.replace(regex,'$1'),property.replace(regex,'$2')];
     return property.replace(regex,'$2');
@@ -259,20 +271,44 @@ prompt.get([
         .replace(/&quot;(.*?)&quot;/g,'<span class="quotes">$1</span>')
         // envelop occurences of the word 'inside' with a span
         .replace(/(?!&quot;)inside(?!&quot;)/g,'<span class="inside">$&</span>')
-        // envelop hexadecimal numbers with a span
+        // envelop hexadecimal colors with a span
         .replace(/#[A-Fa-f0-9]{6}/g, function(value) {
             // Get human readable name of color
             var color = ntc.name(value);
             // [0]=rgb code, [1]=human readable name, [2]=exact match(bool)
             var displayColor = color[1];
-            // An invalid color responds with 'Invalid Color: <input'
+            // An invalid color responds with 'Invalid Color: <input>'
             if(/Invalid Color/.test(color[1])) {
                 displayColor = value;
             }
 
             return `<span class="color" style="color: ${value}">${displayColor}</span>`;
+        })
+        // envelop rgba colors with a span
+        .replace(/rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?([\d\.]+)[\s+]?\)/ig, function(value,r,g,b,alpha) {
+            var hex = rgb2hex(value);
+
+            // Get human readable name of color
+            var color = ntc.name(hex);
+            // [0]=rgb code, [1]=human readable name, [2]=exact match(bool)
+            var displayColor = color[1];
+            // An invalid color responds with 'Invalid Color: <input>'
+            if(/Invalid Color/.test(color[1])) {
+                displayColor = value;
+            }
+
+            var displayAlpha = '';
+
+            if(parseFloat(alpha) != 1) {
+                displayAlpha = ' with a transparency of ' + (parseFloat(alpha) * 100).toString() + '%';
+            }
+
+            return `<span class="color" style="color: ${value}">${displayColor}${displayAlpha}</span>`;
+        })
         // envelop URLs with an a
-        }).replace(/url\("?([^)\n]*?)"?\)/g, '<a href="">$1</a>')
+        .replace(/url\("?([^)\n]*?)"?\)/g, '<a href="">$1</a>')
+        .replace(/rotate\("?([^)\n]*?)"?\)/g, '$1 rotation')
+        .replace(/(\d)px/g,'$1 pixels')
     ;
 
     var outputFile = fs.writeFileSync(result['output'],htmlTemplate.replace(/@\.@/g,output));
