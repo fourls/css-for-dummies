@@ -15,25 +15,29 @@ function rgb2hex(rgb){
 // A class that just serves to be an easy interface to the JSON properties
 class CSSProperty {
     constructor (ref,prop) {
-        var rdbl, tmpl;
-        if(ref == undefined) {
-            // if the property is unknown, just make the readable name the property name
-            rdbl = prop[0];
-        } else {
+        var tmpl, vals;
+        if(ref != undefined) {
             // assign this class's variables based on what it says in the properties
-            rdbl = ref['readable'];
             tmpl = ref['template'];
+            vals = ref['vals'];
         }
-
-        this.readable = rdbl;
 
         // Takes the form of
         // "the {property} is {value}"
         this.template = tmpl !== undefined ? tmpl : 'the {property} is {value}';
+        this.vals = vals !== undefined ? vals : {};
 
         // The pure CSS values (key: value;)
         this.key = prop[0];
         this.value = prop[1];
+
+        this.overrideValue = this.vals[this.value];
+
+        if(this.overrideValue === undefined) {
+            this.readable = this.template.replace('{value}',this.value);
+        } else {
+            this.readable = this.overrideValue;
+        }
     }
 
     getFullString() {
@@ -45,8 +49,7 @@ class CSSProperty {
 
         return this.beginning + ' ' + this.readable + ' ' + this.concatenation + separator + this.value;*/
 
-        var ret = this.template.replace('{property}',this.readable).replace('{value}',this.value);
-        return ret;
+        return this.readable;
     }
 }
 
