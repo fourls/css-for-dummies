@@ -237,16 +237,25 @@ if(require.main == module) {
             // Regex: [0]=full, [1]=filepath, [2]=filename
             // This regex isn't used for its groups though
             validator: /((?:.*?\/)*)(.*?\.css)/ig,
-            warning: 'Please input a valid path to a CSS file (.css).',
-            default: 'test.css'
+            warning: 'Please input a valid path to a CSS file (.css).'
         },
         {
             name: 'output',
             message: 'Where do you want the result?',
-            warning: 'Please input a valid directory.',
-            default: 'test.html'
+            // Regex: [0]=full, [1]=filepath, [2]=filename
+            // This regex isn't used for its groups though
+            validator: /((?:.*?\/)*)(.*?\.html)/ig,
+            warning: 'Please input a valid path ending in a HTMl file (.html).'
         }
     ], function(err, result) {
+        if(!fs.existsSync(result['input'])) {
+            console.log(results['input'] + ' does not exist.');
+            return;
+        } 
+        if(fs.existsSync(result['output'])) {
+            console.log('The output file already exists. Overwriting.');
+        }
+
         // Read the result of the prompt to a string
         var inputFile = fs.readFileSync(result['input']).toString();
         // Parse the CSS - this var is an array of arrays containing human readable selectors and properties
